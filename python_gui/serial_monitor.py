@@ -1,42 +1,53 @@
-from PyQt5.QtWidgets import QDialog, QVBoxLayout, QTextEdit, QPushButton
+import sys
+from PyQt5.QtWidgets import QMainWindow, QTextEdit, QVBoxLayout, QPushButton, QWidget, QApplication
+from PyQt5.QtCore import QTimer
 import serial
-import threading
-import time
+import serial.tools.list_ports
 
 
-class SerialMonitor(QDialog):
-    def __init__(self, port, baudrate=115200, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle("Serial Monitor")
-        self.setGeometry(100, 100, 600, 400)
+class SerialMonitor(QMainWindow):
+    def __init__(self, port, baudrate=115200):
+        super().__init__()
 
-        layout = QVBoxLayout(self)
+        self.setWindowTitle(f"Serial Monitor - {port}")
+        self.setGeometry(300, 100, 600, 400)
 
-        # Text Output
-        self.text_output = QTextEdit(self)
-        self.text_output.setReadOnly(True)
-        layout.addWidget(self.text_output)
+        # Initialize Serial Connection
+        self.port = port
+        self.baudrate = baudrate
+        self.serial_conn = serial.Serial(self.port, self.baudrate, timeout=1)
 
-        # Close Button
-        self.close_button = QPushButton("Close", self)
-        self.close_button.clicked.connect(self.close_monitor)
-        layout.addWidget(self.close_button)
+        # Create Widgets
+        self.text_area = QTextEdit()
+        self.text_area.setReadOnly(True)
 
-        self.serial_port = serial.Serial(port, baudrate, timeout=1)
-        self.running = True
+        self.refresh_button = QPushButton("Clear Screen")
+        self.refresh_button.clicked.connect(self.clear_screen)
 
-        # Start Reading Thread
-        self.thread = threading.Thread(target=self.read_from_serial)
-        self.thread.start()
+        # Layout Setup
+        layout = QVBoxLayout()
+        layout.addWidget(self.text_area)
+        layout.addWidget(self.refresh_button)
 
-    def read_from_serial(self):
-        while self.running:
-            if self.serial_port.in_waiting:
-                line = self.serial_port.readline().decode("utf-8", errors="ignore").strip()
-                self.text_output.append(line)
-            time.sleep(0.1)
+        container = QWidget()
+        container.setLayout(layout)
+        self.setCentralWidget(container)
 
-    def close_monitor(self):
-        self.running = False
-        self.serial_port.close()
-        self.close()
+        # Timer for Reading Data
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.read_serial_data)
+        self.timer.start(500)  # Update every 500ms
+
+    def read_serial_data(self):
+        """ Read data from the serial port """
+        if self.serial_conn.in_waiting:
+            data = self.serial_conn.readline().decode("utf-8").strip()
+            self.text_area.append(data)
+
+    def clear_screen(self):
+        """ Clear the console output """
+        self.text_area.clear()
+
+    def closeEvent(self, event):
+        """ Close the serial port on exit """
+        self.serial_conn.close()
