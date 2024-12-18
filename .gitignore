@@ -1,8 +1,8 @@
-# Python Files
+# Ignore Python Files
 *.pyc
 __pycache__/
 
-# Arduino Files
+# Ignore Arduino Files
 sketch/
 *.ino
 
