@@ -1,0 +1,15 @@
+# Python Files
+*.pyc
+__pycache__/
+
+# Arduino Files
+sketch/
+*.ino
+
+# Development Environments
+venv/
+.idea/
+.vscode/
+
+# Config Files
+settings.json
